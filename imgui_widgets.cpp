@@ -3770,7 +3770,7 @@ const char* ImParseFormatTrimDecorations(const char* fmt, char* buf, size_t buf_
 {
     const char* fmt_start = ImParseFormatFindStart(fmt);
     if (fmt_start[0] != '%')
-        return "";
+        return fmt;
     const char* fmt_end = ImParseFormatFindEnd(fmt_start);
     if (fmt_end[0] == 0) // If we only have leading decoration, we don't need to copy the data.
         return fmt_start;
