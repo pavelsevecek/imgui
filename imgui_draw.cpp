@@ -1753,6 +1753,11 @@ void ImDrawList::AddImageRounded(ImTextureID user_texture_id, const ImVec2& p_mi
         PopTextureID();
 }
 
+ImVec2 ImDrawList::CalcTextSize(const char* text, const char* text_end, float size) {
+    float font_size = size > 0 ? size : _Data->FontSize;
+    return _Data->Font->CalcTextSizeA(font_size, FLT_MAX, 0.f, text, text_end);
+}
+
 //-----------------------------------------------------------------------------
 // [SECTION] ImTriangulator, ImDrawList concave polygon fill
 //-----------------------------------------------------------------------------
@@ -4339,32 +4344,34 @@ void ImFont::RenderText(ImDrawList* draw_list, float size, const ImVec2& pos, Im
 void ImGui::RenderArrow(ImDrawList* draw_list, ImVec2 pos, ImU32 col, ImGuiDir dir, float scale)
 {
     const float h = draw_list->_Data->FontSize * 1.00f;
-    float r = h * 0.40f * scale;
+    float r = h * 0.30f * scale;
     ImVec2 center = pos + ImVec2(h * 0.50f, h * 0.50f * scale);
 
     ImVec2 a, b, c;
-    switch (dir)
-    {
+    switch (dir) {
     case ImGuiDir_Up:
     case ImGuiDir_Down:
-        if (dir == ImGuiDir_Up) r = -r;
-        a = ImVec2(+0.000f, +0.750f) * r;
-        b = ImVec2(-0.866f, -0.750f) * r;
-        c = ImVec2(+0.866f, -0.750f) * r;
+        if (dir == ImGuiDir_Up)
+            r = -r;
+        a = ImVec2(-1, -0.5) * r;
+        b = ImVec2(0, 0.5) * r;
+        c = ImVec2(1, -0.5) * r;
         break;
     case ImGuiDir_Left:
     case ImGuiDir_Right:
-        if (dir == ImGuiDir_Left) r = -r;
-        a = ImVec2(+0.750f, +0.000f) * r;
-        b = ImVec2(-0.750f, +0.866f) * r;
-        c = ImVec2(-0.750f, -0.866f) * r;
+        if (dir == ImGuiDir_Left)
+            r = -r;
+        a = ImVec2(-0.5, -1) * r;
+        b = ImVec2(0.5, 0) * r;
+        c = ImVec2(-0.5, 1) * r;
         break;
     case ImGuiDir_None:
     case ImGuiDir_COUNT:
         IM_ASSERT(0);
         break;
     }
-    draw_list->AddTriangleFilled(center + a, center + b, center + c, col);
+    ImVec2 points[3] = { center + a, center + b, center + c };
+    draw_list->AddPolyline(points, 3, col, ImDrawFlags_None, 1.f);
 }
 
 void ImGui::RenderBullet(ImDrawList* draw_list, ImVec2 pos, ImU32 col)

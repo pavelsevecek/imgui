@@ -3618,8 +3618,13 @@ void ImGui::RenderTextWrapped(ImVec2 pos, const char* text, const char* text_end
 // FIXME-OPT: Since we have or calculate text_size we could coarse clip whole block immediately, especally for text above draw_list->DrawList.
 // Effectively as this is called from widget doing their own coarse clipping it's not very valuable presently. Next time function will take
 // better advantage of the render function taking size into account for coarse clipping.
-void ImGui::RenderTextClippedEx(ImDrawList* draw_list, const ImVec2& pos_min, const ImVec2& pos_max, const char* text, const char* text_display_end, const ImVec2* text_size_if_known, const ImVec2& align, const ImRect* clip_rect)
+void ImGui::RenderTextClippedEx(ImDrawList* draw_list, const ImVec2& pos_min, const ImVec2& pos_max, const char* text, const char* text_display_end, const ImVec2* text_size_if_known, const ImVec2& align, const ImRect* clip_rect, const bool split_units)
 {
+    if (split_units) { 
+        RenderTextClippedWithUnits(draw_list, pos_min, pos_max, text, text_display_end, text_size_if_known, align, clip_rect); 
+        return; 
+    } 
+
     // Perform CPU side clipping for single clipped element to avoid using scissor state
     ImVec2 pos = pos_min;
     const ImVec2 text_size = text_size_if_known ? *text_size_if_known : CalcTextSize(text, text_display_end, false, 0.0f);
@@ -3646,7 +3651,192 @@ void ImGui::RenderTextClippedEx(ImDrawList* draw_list, const ImVec2& pos_min, co
     }
 }
 
-void ImGui::RenderTextClipped(const ImVec2& pos_min, const ImVec2& pos_max, const char* text, const char* text_end, const ImVec2* text_size_if_known, const ImVec2& align, const ImRect* clip_rect)
+
+void ImGui::RenderTextClippedWithUnits(ImDrawList* draw_list, const ImVec2& pos_min, const ImVec2& pos_max, const char* text, const char* text_display_end, const ImVec2* text_size_if_known, const ImVec2& align, const ImRect* clip_rect)
+{
+    // Perform CPU side clipping for single clipped element to avoid using scissor state
+    ImVec2 pos = pos_min;
+    // const ImVec2 text_size = text_size_if_known ? *text_size_if_known
+    //                                             : CalcTextSize(text, text_display_end, false,
+    //                                             0.0f);
+
+    const float subscript_scale = 0.8f;
+
+    const char* exponent_begin = std::max(strstr(text, "e+"), strstr(text, "e-"));
+    const char* unit_begin = strchr(text, ' ');
+    const char* subscript_begin = unit_begin ? strchr(unit_begin, '_') : nullptr;
+    // const char* superscript_begin = unit_begin ? strchr(unit_begin, '^') : nullptr;
+
+    const char* exponent_end = unit_begin;
+    const char* number_end =
+        exponent_begin != nullptr ? std::min(unit_begin, exponent_begin) : unit_begin;
+    const char* unit_end =
+        subscript_begin; // subscript_begin != nullptr ? subscript_begin : superscript_begin;
+
+    const float font_size = draw_list->_Data->FontSize;
+    const float small_font_size = subscript_scale * font_size;
+    ImVec2 number_size, base10_size, exponent_size, unit_size, subscript_size, superscript_size;
+    float cross_size = 0, cross_l = 0;
+    number_size = draw_list->CalcTextSize(text, number_end);
+    bool negative_exponent = false;
+    float negative_size = 0;
+    if (exponent_begin) {
+        negative_exponent = exponent_begin[1] == '-';
+        exponent_begin += 2; // skip the e+/e-
+        if (*exponent_begin == '0') {
+            exponent_begin++; // skip leading zero
+        }
+        exponent_size = draw_list->CalcTextSize(exponent_begin, exponent_end, small_font_size);
+        negative_size =
+            negative_exponent ? draw_list->CalcTextSize("-", nullptr, small_font_size).x : 0;
+        exponent_size.x += negative_size;
+        base10_size = draw_list->CalcTextSize("10");
+        cross_size = 0.6f * font_size;
+        cross_l = 0.35f * cross_size;
+    }
+
+    float unit_parts[10];
+    int part_index = 0;
+
+    if (unit_begin) {
+        const char* s = unit_begin;
+        while (s != nullptr) {
+            const char* superscript_begin = strchr(s, '^');
+            const char* s1 = superscript_begin ? superscript_begin : unit_end;
+            float l1 = draw_list->CalcTextSize(s, s1).x;
+            unit_parts[part_index++] = l1;
+            unit_size.x += l1;
+            if (superscript_begin == nullptr) {
+                break;
+            }
+            const char* superscript_end = strchr(superscript_begin + 1, ' ');
+            float l2 =
+                draw_list->CalcTextSize(superscript_begin + 1, superscript_end, small_font_size).x;
+            superscript_size.x += l2;
+            unit_parts[part_index++] = l2;
+            s = superscript_end;
+        }
+        IM_ASSERT(part_index < 10);
+    }
+    if (subscript_begin) {
+        subscript_begin++; // skip the '_'
+        subscript_size = draw_list->CalcTextSize(subscript_begin, nullptr, small_font_size);
+    }
+    /* if (superscript_begin) {
+         superscript_begin++; // skip the '^'
+         superscript_size = draw_list->CalcTextSize(superscript_begin, nullptr, small_font_size);
+     }*/
+    ImVec2 text_size;
+    const float padding = 0.1f * number_size.y;
+    text_size.x = number_size.x + base10_size.x + exponent_size.x + unit_size.x + subscript_size.x +
+                  superscript_size.x + cross_size +
+                  (int(subscript_begin != nullptr) + int(exponent_begin != nullptr)) * padding;
+    text_size.y = number_size.y;
+
+    const ImVec2* clip_min = clip_rect ? &clip_rect->Min : &pos_min;
+    const ImVec2* clip_max = clip_rect ? &clip_rect->Max : &pos_max;
+    bool need_clipping =
+        (pos.x + text_size.x >= clip_max->x) || (pos.y + text_size.y >= clip_max->y);
+    if (clip_rect) // If we had no explicit clipping rectangle then pos==clip_min
+        need_clipping |= (pos.x < clip_min->x) || (pos.y < clip_min->y);
+
+    // Align whole block. We should defer that to the better rendering function when we'll have
+    // support for individual line alignment.
+    if (align.x > 0.0f)
+        pos.x = ImMax(pos.x, pos.x + (pos_max.x - pos.x - text_size.x) * align.x);
+    if (align.y > 0.0f)
+        pos.y = ImMax(pos.y, pos.y + (pos_max.y - pos.y - text_size.y) * align.y);
+
+    ImU32 col = GetColorU32(ImGuiCol_Text);
+    draw_list->AddText(NULL, 0.0f, pos, col, text, number_end, 0.0f, NULL);
+    pos.x += number_size.x;
+
+    if (exponent_begin) {
+        // cross
+        ImVec2 p0 = pos;
+        p0.x += cross_size / 2;
+        p0.y += text_size.y / 2;
+        draw_list->AddLine(ImVec2(p0.x - cross_l, p0.y - cross_l),
+            ImVec2(p0.x + cross_l, p0.y + cross_l),
+            col,
+            0.75f * padding);
+        draw_list->AddLine(ImVec2(p0.x - cross_l, p0.y + cross_l),
+            ImVec2(p0.x + cross_l, p0.y - cross_l),
+            col,
+            0.75f * padding);
+        pos.x += cross_size + padding;
+        draw_list->AddText(NULL, 0.0f, pos, col, "10", nullptr, 0.0f, NULL);
+        pos.x += base10_size.x;
+        if (negative_exponent) {
+            draw_list->AddText(NULL,
+                small_font_size,
+                ImVec2(pos.x, pos.y - 0.15f * text_size.y),
+                col,
+                "-",
+                NULL,
+                0.0f,
+                NULL);
+            pos.x += negative_size;
+        }
+        draw_list->AddText(NULL,
+            small_font_size,
+            ImVec2(pos.x, pos.y - 0.15f * text_size.y),
+            col,
+            exponent_begin,
+            exponent_end,
+            0.0f,
+            NULL);
+        pos.x += exponent_size.x - negative_size;
+    }
+
+    if (unit_begin) {
+        const char* s = unit_begin;
+        part_index = 0;
+        while (s != nullptr) {
+            const char* superscript_begin = strchr(s, '^');
+            const char* s1 = superscript_begin ? superscript_begin : unit_end;
+            float unit_size = unit_parts[part_index++]; // draw_list->CalcTextSize(s, s1).x;
+            draw_list->AddText(NULL, 0, pos, col, s, s1, 0.0f, NULL);
+            pos.x += unit_size;
+            if (superscript_begin == nullptr) {
+                break;
+            }
+            const char* superscript_end = strchr(superscript_begin + 1, ' ');
+            float superscript_size = unit_parts[part_index++];
+            // draw_list->CalcTextSize(superscript_begin + 1, superscript_end, small_font_size).x;
+            draw_list->AddText(NULL,
+                small_font_size,
+                ImVec2(pos.x, pos.y - 0.15f * text_size.y),
+                col,
+                superscript_begin + 1,
+                superscript_end,
+                0.0f,
+                NULL);
+            pos.x += superscript_size;
+            s = superscript_end;
+        }
+
+        //        pos.x += unit_size.x;
+
+        if (subscript_begin) {
+            draw_list->AddText(NULL,
+                small_font_size,
+                ImVec2(pos.x + padding, pos.y + text_size.y / 3),
+                col,
+                subscript_begin,
+                text_display_end,
+                0.0f,
+                NULL);
+        } // else if (superscript_begin) {
+        //    draw_list->AddText(NULL, small_font_size, ImVec2(pos.x + padding, pos.y - text_size.y
+        //    / 5), col, superscript_begin, text_display_end, 0.0f, NULL);
+        // }
+    }
+    // draw_list->AddLine(ImVec2((pos_min.x + pos_max.x) / 2, pos_min.y), ImVec2((pos_min.x +
+    // pos_max.x) / 2, pos_max.y), IM_COL32(255, 0, 0, 255));
+} 
+
+void ImGui::RenderTextClipped(const ImVec2& pos_min, const ImVec2& pos_max, const char* text, const char* text_end, const ImVec2* text_size_if_known, const ImVec2& align, const ImRect* clip_rect, const bool replace_subscripts)
 {
     // Hide anything after a '##' string
     const char* text_display_end = FindRenderedTextEnd(text, text_end);
@@ -3656,7 +3846,7 @@ void ImGui::RenderTextClipped(const ImVec2& pos_min, const ImVec2& pos_max, cons
 
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
-    RenderTextClippedEx(window->DrawList, pos_min, pos_max, text, text_display_end, text_size_if_known, align, clip_rect);
+    RenderTextClippedEx(window->DrawList, pos_min, pos_max, text, text_display_end, text_size_if_known, align, clip_rect, replace_subscripts);
     if (g.LogEnabled)
         LogRenderedText(&pos_min, text, text_display_end);
 }
@@ -3721,16 +3911,16 @@ void ImGui::RenderTextEllipsis(ImDrawList* draw_list, const ImVec2& pos_min, con
 }
 
 // Render a rectangle shaped with optional rounding and borders
-void ImGui::RenderFrame(ImVec2 p_min, ImVec2 p_max, ImU32 fill_col, bool borders, float rounding)
+void ImGui::RenderFrame(ImVec2 p_min, ImVec2 p_max, ImU32 fill_col, bool borders, float rounding, ImDrawFlags flags)
 {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
-    window->DrawList->AddRectFilled(p_min, p_max, fill_col, rounding);
+    window->DrawList->AddRectFilled(p_min, p_max, fill_col, rounding, flags);
     const float border_size = g.Style.FrameBorderSize;
     if (borders && border_size > 0.0f)
     {
-        window->DrawList->AddRect(p_min + ImVec2(1, 1), p_max + ImVec2(1, 1), GetColorU32(ImGuiCol_BorderShadow), rounding, 0, border_size);
-        window->DrawList->AddRect(p_min, p_max, GetColorU32(ImGuiCol_Border), rounding, 0, border_size);
+        window->DrawList->AddRect(p_min + ImVec2(1, 1), p_max + ImVec2(1, 1), GetColorU32(ImGuiCol_BorderShadow), rounding, flags, border_size);
+        window->DrawList->AddRect(p_min, p_max, GetColorU32(ImGuiCol_Border), rounding, flags, border_size);
     }
 }
 
@@ -3918,7 +4108,7 @@ ImGuiContext::ImGuiContext(ImFontAtlas* shared_font_atlas)
     HoveredIdPreviousFrameItemCount = 0;
     HoveredIdAllowOverlap = false;
     HoveredIdIsDisabled = false;
-    HoveredIdTimer = HoveredIdNotActiveTimer = 0.0f;
+    HoveredIdTimer = HoveredIdNotActiveTimer = HoveredIdMouseStaticTimer = 0.0f;
     ItemUnclipByLog = false;
     ActiveId = 0;
     ActiveIdIsAlive = 0;
@@ -4422,7 +4612,7 @@ void ImGui::SetHoveredID(ImGuiID id)
     g.HoveredId = id;
     g.HoveredIdAllowOverlap = false;
     if (id != 0 && g.HoveredIdPreviousFrame != id)
-        g.HoveredIdTimer = g.HoveredIdNotActiveTimer = 0.0f;
+        g.HoveredIdTimer = g.HoveredIdNotActiveTimer = g.HoveredIdMouseStaticTimer = 0.0f;
 }
 
 ImGuiID ImGui::GetHoveredID()
@@ -4493,6 +4683,21 @@ static ImGuiHoveredFlags ApplyHoverFlagsForTooltip(ImGuiHoveredFlags user_flags,
     if (user_flags & (ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_DelayNormal))
         shared_flags &= ~(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_DelayNormal);
     return user_flags | shared_flags;
+}
+ 
+float ImGui::HoveredDuration()
+{ 
+    ImGuiContext& g = *GImGui; 
+    return g.HoveredIdMouseStaticTimer; 
+} 
+ 
+float ImGui::ActiveDuration() { 
+    ImGuiContext& g = *GImGui; 
+    return g.ActiveIdTimer; 
+} 
+ 
+bool ImGui::ShowTooltip() {
+    return IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && HoveredDuration() > 0.5f; 
 }
 
 // This is roughly matching the behavior of internal-facing ItemHoverable()
@@ -5124,9 +5329,10 @@ static void SetupDrawListSharedData()
         g.DrawListSharedData.InitialFlags |= ImDrawListFlags_AllowVtxOffset;
 }
 
-void ImGui::NewFrame()
-{
-    IM_ASSERT(GImGui != NULL && "No current context. Did you call ImGui::CreateContext() and ImGui::SetCurrentContext() ?");
+void ImGui::NewFrame() {
+    IM_ASSERT(
+        GImGui != NULL &&
+        "No current context. Did you call ImGui::CreateContext() and ImGui::SetCurrentContext() ?");
     ImGuiContext& g = *GImGui;
 
     // Remove pending delete hooks before frame start.
@@ -5151,13 +5357,20 @@ void ImGui::NewFrame()
     g.MenusIdSubmittedThisFrame.resize(0);
 
     // Calculate frame-rate for the user, as a purely luxurious feature
-    g.FramerateSecPerFrameAccum += g.IO.DeltaTime - g.FramerateSecPerFrame[g.FramerateSecPerFrameIdx];
+    g.FramerateSecPerFrameAccum +=
+        g.IO.DeltaTime - g.FramerateSecPerFrame[g.FramerateSecPerFrameIdx];
     g.FramerateSecPerFrame[g.FramerateSecPerFrameIdx] = g.IO.DeltaTime;
-    g.FramerateSecPerFrameIdx = (g.FramerateSecPerFrameIdx + 1) % IM_ARRAYSIZE(g.FramerateSecPerFrame);
-    g.FramerateSecPerFrameCount = ImMin(g.FramerateSecPerFrameCount + 1, IM_ARRAYSIZE(g.FramerateSecPerFrame));
-    g.IO.Framerate = (g.FramerateSecPerFrameAccum > 0.0f) ? (1.0f / (g.FramerateSecPerFrameAccum / (float)g.FramerateSecPerFrameCount)) : FLT_MAX;
+    g.FramerateSecPerFrameIdx =
+        (g.FramerateSecPerFrameIdx + 1) % IM_ARRAYSIZE(g.FramerateSecPerFrame);
+    g.FramerateSecPerFrameCount =
+        ImMin(g.FramerateSecPerFrameCount + 1, IM_ARRAYSIZE(g.FramerateSecPerFrame));
+    g.IO.Framerate =
+        (g.FramerateSecPerFrameAccum > 0.0f)
+            ? (1.0f / (g.FramerateSecPerFrameAccum / (float)g.FramerateSecPerFrameCount))
+            : FLT_MAX;
 
-    // Process input queue (trickle as many events as possible), turn events into writes to IO structure
+    // Process input queue (trickle as many events as possible), turn events into writes to IO
+    // structure
     g.InputEventsTrail.resize(0);
     UpdateInputEvents(g.IO.ConfigInputTrickleEventQueue);
 
@@ -5174,23 +5387,32 @@ void ImGui::NewFrame()
     for (ImGuiViewportP* viewport : g.Viewports)
         viewport->DrawDataP.Valid = false;
 
-    // Drag and drop keep the source ID alive so even if the source disappear our state is consistent
+    // Drag and drop keep the source ID alive so even if the source disappear our state is
+    // consistent
     if (g.DragDropActive && g.DragDropPayload.SourceId == g.ActiveId)
         KeepAliveID(g.DragDropPayload.SourceId);
 
     // [DEBUG]
-    if (!g.IO.ConfigDebugHighlightIdConflicts || !g.IO.KeyCtrl) // Count is locked while holding CTRL
+    if (!g.IO.ConfigDebugHighlightIdConflicts ||
+        !g.IO.KeyCtrl) // Count is locked while holding CTRL
         g.DebugDrawIdConflicts = 0;
     if (g.IO.ConfigDebugHighlightIdConflicts && g.HoveredIdPreviousFrameItemCount > 1)
         g.DebugDrawIdConflicts = g.HoveredIdPreviousFrame;
 
     // Update HoveredId data
-    if (!g.HoveredIdPreviousFrame)
+    if (!g.HoveredIdPreviousFrame) {
         g.HoveredIdTimer = 0.0f;
+        g.HoveredIdMouseStaticTimer = 0.0f;
+    }
     if (!g.HoveredIdPreviousFrame || (g.HoveredId && g.ActiveId == g.HoveredId))
         g.HoveredIdNotActiveTimer = 0.0f;
-    if (g.HoveredId)
+    if (g.HoveredId) {
         g.HoveredIdTimer += g.IO.DeltaTime;
+        if (g.IO.MouseDelta.x == 0 && g.IO.MouseDelta.y == 0)
+            g.HoveredIdMouseStaticTimer += g.IO.DeltaTime;
+        else
+            g.HoveredIdMouseStaticTimer = 0.0f;
+    }
     if (g.HoveredId && g.ActiveId != g.HoveredId)
         g.HoveredIdNotActiveTimer += g.IO.DeltaTime;
     g.HoveredIdPreviousFrame = g.HoveredId;
@@ -5843,6 +6065,15 @@ bool ImGui::IsItemActive()
     return false;
 }
 
+bool ImGui::IsItemActive(const char* id)
+{
+    ImGuiContext& g = *GImGui;
+    if (g.ActiveId) {
+        return g.ActiveId == g.CurrentWindow->GetID(id);
+    }
+    return false;
+}
+
 bool ImGui::IsItemActivated()
 {
     ImGuiContext& g = *GImGui;
@@ -5919,11 +6150,23 @@ bool ImGui::IsAnyItemFocused()
     return g.NavId != 0 && g.NavCursorVisible;
 }
 
+bool ImGui::IsItemTempEdited()
+{
+    ImGuiContext& g = *GImGui;
+    ImGuiID id = g.LastItemData.ID;
+    return id == g.TempInputId && id == g.ActiveId;
+}
+
 bool ImGui::IsItemVisible()
 {
     ImGuiContext& g = *GImGui;
     return (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_Visible) != 0;
 }
+
+bool ImGui::IsItemReleased(ImGuiMouseButton mouse_button)
+{
+    return IsMouseReleased(mouse_button) && IsItemHovered(ImGuiHoveredFlags_None);
+} 
 
 bool ImGui::IsItemEdited()
 {
@@ -5988,6 +6231,10 @@ ImVec2 ImGui::GetItemRectSize()
     ImGuiContext& g = *GImGui;
     return g.LastItemData.Rect.GetSize();
 }
+
+void ImGui::ActivateItem() {
+    SetKeyboardFocusHere(-1);
+} 
 
 // Prior to v1.90 2023/10/16, the BeginChild() function took a 'bool border = false' parameter instead of 'ImGuiChildFlags child_flags = 0'.
 // ImGuiChildFlags_Borders is defined as always == 1 in order to allow old code passing 'true'. Read comments in imgui.h for details!
