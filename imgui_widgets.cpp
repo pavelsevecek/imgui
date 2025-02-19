@@ -2936,7 +2936,7 @@ bool ImGui::DragScalarN(const char* label, ImGuiDataType data_type, void* p_data
 
     ImGuiContext& g = *GImGui;
     float innerSpacingBackup = g.Style.ItemInnerSpacing.x;
-    g.Style.ItemInnerSpacing.x = 0; 
+    g.Style.ItemInnerSpacing.x = g.Style.MultiItemSpacing; 
     bool value_changed = false;
     BeginGroup();
     PushID(label);
@@ -3050,7 +3050,7 @@ bool ImGui::DragIntRange2(const char* label, int* v_current_min, int* v_current_
     ImGuiContext& g = *GImGui;
     PushID(label);
     float defaultSpacing = g.Style.ItemInnerSpacing.x;
-    g.Style.ItemInnerSpacing.x = 0; 
+    g.Style.ItemInnerSpacing.x = g.Style.MultiItemSpacing; 
     BeginGroup();
     PushMultiItemsWidths(2, CalcItemWidth());
 
@@ -3556,7 +3556,7 @@ bool ImGui::SliderScalarN(const char* label, ImGuiDataType data_type, void* v, i
 
     ImGuiContext& g = *GImGui;
     float inner_spacing_bckup = g.Style.ItemInnerSpacing.x;
-    g.Style.ItemInnerSpacing.x = 0; 
+    g.Style.ItemInnerSpacing.x = g.Style.MultiItemSpacing; 
     bool value_changed = false;
     BeginGroup();
     PushID(label);
@@ -3973,7 +3973,7 @@ bool ImGui::InputScalar(const char* label, ImGuiDataType data_type, void* p_data
         BeginGroup(); // The only purpose of the group here is to allow the caller to query item data e.g. IsItemActive()
         PushID(label);
         float inner_spacing_backup = style.ItemInnerSpacing.x;
-        style.ItemInnerSpacing.x = 0.f; 
+        style.ItemInnerSpacing.x = g.Style.MultiItemSpacing; 
         SetNextItemWidth(ImMax(1.0f, CalcItemWidth() - (button_size + style.ItemInnerSpacing.x) * 2));
         if (InputText("", buf, IM_ARRAYSIZE(buf), flags)) // PushId(label) + "" gives us the expected ID from outside point of view
             value_changed = DataTypeApplyFromText(buf, data_type, p_data, format, (flags & ImGuiInputTextFlags_ParseEmptyRefVal) ? p_data_default : NULL);
@@ -4030,7 +4030,7 @@ bool ImGui::InputScalarN(const char* label, ImGuiDataType data_type, void* p_dat
     ImGuiContext& g = *GImGui;
     bool value_changed = false;
     const float inner_spacing_bckup = g.Style.ItemInnerSpacing.x;
-    g.Style.ItemInnerSpacing.x = 0; 
+    g.Style.ItemInnerSpacing.x = g.Style.MultiItemSpacing; 
     BeginGroup();
     PushID(label);
     PushMultiItemsWidths(components, CalcItemWidth());
@@ -5747,7 +5747,7 @@ bool ImGui::ColorEdit4(const char* label, float col[4], ImGuiColorEditFlags flag
     ImGuiContext& g = *GImGui;
     ImGuiStyle& style = g.Style;
     float innerSpacingBackup = style.ItemInnerSpacing.x;
-    style.ItemInnerSpacing.x = 0; 
+    style.ItemInnerSpacing.x = g.Style.MultiItemSpacing; 
     const float square_sz = GetFrameHeight();
     const char* label_display_end = FindRenderedTextEnd(label);
     float w_full = CalcItemWidth();

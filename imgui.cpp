@@ -1329,6 +1329,7 @@ ImGuiStyle::ImGuiStyle()
     FrameBorderSize             = 0.0f;             // Thickness of border around frames. Generally set to 0.0f or 1.0f. Other values not well tested.
     ItemSpacing                 = ImVec2(8,4);      // Horizontal and vertical spacing between widgets/lines
     ItemInnerSpacing            = ImVec2(4,4);      // Horizontal and vertical spacing between within elements of a composed widget (e.g. a slider and its label)
+    MultiItemSpacing            = 1;
     CellPadding                 = ImVec2(4,2);      // Padding within a table cell. Cellpadding.x is locked for entire table. CellPadding.y may be altered between different rows.
     TouchExtraPadding           = ImVec2(0,0);      // Expand reactive bounding box for touch-based system where touch position is not accurate enough. Unfortunately we don't sort widgets so priority on overlap will always be given to the first widget. So don't grow this too much!
     IndentSpacing               = 21.0f;            // Horizontal spacing when e.g. entering a tree node. Generally == (FontSize + FramePadding.x*2).
@@ -1384,6 +1385,7 @@ void ImGuiStyle::ScaleAllSizes(float scale_factor)
     FrameRounding = ImTrunc(FrameRounding * scale_factor);
     ItemSpacing = ImTrunc(ItemSpacing * scale_factor);
     ItemInnerSpacing = ImTrunc(ItemInnerSpacing * scale_factor);
+    MultiItemSpacing = ImTrunc(MultiItemSpacing * scale_factor);
     CellPadding = ImTrunc(CellPadding * scale_factor);
     TouchExtraPadding = ImTrunc(TouchExtraPadding * scale_factor);
     IndentSpacing = ImTrunc(IndentSpacing * scale_factor);
