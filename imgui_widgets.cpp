@@ -4142,6 +4142,13 @@ bool ImGui::InputTextWithHint(const char* label, const char* hint, char* buf, si
     return InputTextEx(label, hint, buf, (int)buf_size, ImVec2(0, 0), flags, callback, user_data);
 }
 
+void ImGui::ResetInputTextAndSelectAll() {
+    ImGuiID id = ImGui::GetItemID();
+    if (ImGuiInputTextState* state = ImGui::GetInputTextState(id)) {
+        state->ReloadUserBufAndSelectAll();
+    }
+}
+
 // This is only used in the path where the multiline widget is inactivate.
 static int InputTextCalcTextLenAndLineCount(const char* text_begin, const char** out_text_end)
 {
