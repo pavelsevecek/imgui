@@ -7055,8 +7055,8 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
 
             if (flags & ImGuiTreeNodeFlags_Bullet)
                 RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.5f, text_pos.y + g.FontSize * 0.5f), text_col);
-            else if (!is_leaf)
-                RenderArrow(window->DrawList, ImVec2(text_pos.x - 0.765f * text_offset_x, text_pos.y + g.FontSize * 0.15f), line_col, is_open ? ((flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) : ImGuiDir_Right, 0.70f);
+            //else if (!is_leaf)
+              //  RenderArrow(window->DrawList, ImVec2(text_pos.x - 0.765f * text_offset_x, text_pos.y + g.FontSize * 0.15f), line_col, is_open ? ((flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) : ImGuiDir_Right, 0.70f);
             if (g.LogEnabled)
                 LogSetNextTextDecoration(">", NULL);
         }
@@ -7073,7 +7073,7 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
 
             float x = text_pos.x - 0.5f * text_offset_x;
             float y = text_pos.y + 0.5f * g.FontSize;
-            if (is_leaf) {
+            //if(is_leaf) {
                 window->DrawList->PathLineTo(ImVec2(text_pos.x - padding.x, y));
                 window->DrawList->PathLineTo(ImVec2(x, y));
                 window->DrawList->PathStroke(line_col);
@@ -7081,15 +7081,15 @@ bool ImGui::TreeNodeBehavior(ImGuiID id, ImGuiTreeNodeFlags flags, const char* l
                 window->DrawList->PathLineTo(ImVec2(x, frame_bb.Min.y));
                 window->DrawList->PathLineTo(ImVec2(x,
                     (flags & ImGuiTreeNodeFlags_LastLeaf) ? frame_bb.GetCenter().y
-                                                          : frame_bb.Max.y));
+                                                          : frame_bb.Max.y + 0.25f * g.FontSize));
                 window->DrawList->PathStroke(line_col);
-            } else {
+            /*} else {
                 float w = g.FontSize * 0.45f;
                 window->DrawList->AddRect(ImVec2(x - w, y - w), ImVec2(x + w, y + w), line_col);
                 window->DrawList->PathLineTo(ImVec2(x, frame_bb.Min.y));
                 window->DrawList->PathLineTo(ImVec2(x, y - w));
                 window->DrawList->PathStroke(line_col);
-            } 
+            } */
         }
 
         if (span_all_columns_label)
