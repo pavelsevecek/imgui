@@ -8536,6 +8536,11 @@ ImDrawList* ImGui::GetWindowDrawList()
     return window->DrawList;
 }
 
+ImDrawList* ImGui::GetParentWindowDrawList() {
+    ImGuiWindow* window = GetCurrentWindow();
+    return window->ParentWindow->DrawList;
+}
+
 ImFont* ImGui::GetFont()
 {
     return GImGui->Font;
