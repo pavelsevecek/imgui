@@ -3,7 +3,11 @@
 namespace ImGui { 
  
 static std::map<UnitDim, std::vector<UnitDef>> units; 
- 
+
+void clearUnits() {
+    units.clear();
+}
+
 void registerUnit(UnitDim dim, UnitDef def) { 
     units[dim].push_back(def); 
 } 

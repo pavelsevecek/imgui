@@ -18,7 +18,8 @@ struct Units {
     UnitDim dimension = { 0, 0, 0, 0, 0 }; 
     double current_factor = 1.f; 
 }; 
- 
+
+void clearUnits();
 void registerUnit(UnitDim dim, UnitDef def); 
  
 double findFactor(UnitDim dim, const char* label); 

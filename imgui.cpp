@@ -3669,9 +3669,12 @@ void ImGui::RenderTextClippedWithUnits(ImDrawList* draw_list, const ImVec2& pos_
     const char* subscript_begin = unit_begin ? strchr(unit_begin, '_') : nullptr;
     // const char* superscript_begin = unit_begin ? strchr(unit_begin, '^') : nullptr;
 
-    const char* exponent_end = unit_begin;
-    const char* number_end =
-        exponent_begin != nullptr ? std::min(unit_begin, exponent_begin) : unit_begin;
+    const char* exponent_end = unit_begin != nullptr ? unit_begin : text_display_end;
+    const char* number_end = text_display_end;
+    if (exponent_begin != nullptr )
+        number_end = std::min(number_end, exponent_begin);
+    if (unit_begin != nullptr)
+        number_end = std::min(number_end, unit_begin);
     const char* unit_end =
         subscript_begin; // subscript_begin != nullptr ? subscript_begin : superscript_begin;
 
