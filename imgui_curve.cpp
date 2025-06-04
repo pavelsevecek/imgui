@@ -40,7 +40,7 @@ namespace ImGui
 
 namespace ImGui
 {
-static const float CurveTerminator = -10000;
+const float CurveTerminator = -10000;
 
 // [src] http://iquilezles.org/www/articles/minispline/minispline.htm
 // key format (for dim == 1) is (t0,x0,t1,x1 ...)
