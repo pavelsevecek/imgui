@@ -1,4 +1,5 @@
-#include "imgui_units.h" 
+#include "imgui_units.h"
+#include <cstring>
  
 namespace ImGui { 
  
@@ -24,8 +25,8 @@ static bool equals_case_insensitive(const char* s1, const char* s2, int length) 
 double findFactor(UnitDim dim, const char* label) { 
     while (*label == ' ') { 
         label++; 
-    } 
-    const int num_chars = (int)strlen(label); 
+    }
+    const int num_chars = (int)std::strlen(label);
     for (const UnitDef& def : units[dim]) { 
         if (def.label.size() == num_chars && 
             equals_case_insensitive(def.label.c_str(), label, num_chars)) { 
