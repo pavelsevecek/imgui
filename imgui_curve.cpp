@@ -261,7 +261,7 @@ int Curve(const char* label, const ImVec2& size, float handleSize, const int max
         else if (action == action_delete_point)
         {
             // delete point
-            if (currentSelection > 0 && currentSelection < maxpoints - 1)
+            if (currentSelection > 0 && currentSelection < pointCount - 1)
             {
                 for (i = currentSelection; i < maxpoints - 1; ++i)
                     points[i] = points[i + 1];
