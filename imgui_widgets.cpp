@@ -1427,6 +1427,18 @@ bool ImGui::CheckboxFlags(const char* label, ImU64* flags, ImU64 flags_value)
     return CheckboxFlagsT(label, flags, flags_value);
 }
 
+bool ImGui::CheckboxMixed(const char* label, bool* off, bool* on) {
+    ImGuiContext& g = *GImGui;
+    if (!*off && !*on) {
+        g.NextItemData.ItemFlags |= ImGuiItemFlags_MixedValue;
+    }
+    bool pressed = Checkbox(label, on);
+    if (pressed) {
+        *off = !*on;
+    }
+    return pressed;
+}
+
 bool ImGui::RadioButton(const char* label, bool active)
 {
     ImGuiWindow* window = GetCurrentWindow();
