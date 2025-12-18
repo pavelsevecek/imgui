@@ -68,6 +68,7 @@ void spline(const float* key, int num, float t, float* v)
 
     // interpolant
     const float h = key1 != key0 ? (t - key0) / (key1 - key0) : 0.f;
+    IM_ASSERT(std::isfinite(h));
 
     // init result
     for (int i = 0; i < DIM; i++)
@@ -102,6 +103,7 @@ float CurveValueSmooth(float p, int maxpoints, const ImVec2* points)
     }
 
     spline<1>(input, maxpoints, p, output);
+    IM_ASSERT(std::isfinite(output[0]));
 
     delete[] input;
     return output[0];
@@ -174,7 +176,7 @@ int Curve(const char* label, const ImVec2& size, float handleSize, const int max
     } 
 
     int pointCount = 0;
-    while (pointCount < maxpoints && points[pointCount].x >= rangeMin.x)
+    while (pointCount < maxpoints && points[pointCount].x != CurveTerminator)
         pointCount++;
 
     const ImGuiStyle& style = g.Style;
