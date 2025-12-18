@@ -59,15 +59,15 @@ void spline(const float* key, int num, float t, float* v)
     const int size = DIM + 1;
 
     // find key
-    int k = 0;
-    while (key[k * size] < t)
-        k++;
+    int k = 1;
+    while (k < num - 1 && key[k * size] < t)
+        k++;   
 
     const float key0 = key[(k - 1) * size];
     const float key1 = key[k * size];
 
     // interpolant
-    const float h = (t - key0) / (key1 - key0);
+    const float h = key1 != key0 ? (t - key0) / (key1 - key0) : 0.f;
 
     // init result
     for (int i = 0; i < DIM; i++)
