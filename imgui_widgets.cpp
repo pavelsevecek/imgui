@@ -10648,6 +10648,11 @@ void    ImGui::SetTabItemClosed(const char* label)
     }
 }
 
+int ImGui::CurrentTabItemIndex() {
+    ImGuiTabBar* bar = GetCurrentTabBar();
+    return TabBarGetTabOrder(bar, TabBarGetCurrentTab(bar));
+}
+
 ImVec2 ImGui::TabItemCalcSize(const char* label, bool has_close_button_or_unsaved_marker)
 {
     ImGuiContext& g = *GImGui;
