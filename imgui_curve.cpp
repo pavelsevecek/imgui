@@ -338,7 +338,7 @@ int Curve(const char* label, const ImVec2& size, float handleSize, const int max
         drawList->AddLine(ImVec2(bb.Min.x + (wd / 8) * (i + 1), bb.Min.y), ImVec2(bb.Min.x + (wd / 8) * (i + 1), bb.Max.y), gridColor2);
     }
 
-    drawList->PushClipRect(bb.Min, bb.Max);
+    drawList->PushClipRect(bb.Min, bb.Max, true);
 
     // smooth curve
     enum
