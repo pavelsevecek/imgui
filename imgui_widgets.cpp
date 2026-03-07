@@ -7309,6 +7309,10 @@ bool ImGui::Selectable(const char* label, bool selected, ImGuiSelectableFlags fl
     if (window->SkipItems)
         return false;
 
+    if (label == nullptr) {
+        label = "";
+    }
+
     ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
 
