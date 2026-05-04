@@ -4022,6 +4022,10 @@ void ImGui::SetCurrentContext(ImGuiContext* ctx)
 #endif
 }
 
+ImGuiID ImGui::HashString(const char* data, ImGuiID seed ) {
+    return ImHashStr(data, 0, seed);
+}
+
 void ImGui::SetAllocatorFunctions(ImGuiMemAllocFunc alloc_func, ImGuiMemFreeFunc free_func, void* user_data)
 {
     GImAllocatorAllocFunc = alloc_func;

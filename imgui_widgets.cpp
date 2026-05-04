@@ -1585,6 +1585,31 @@ void ImGui::Bullet()
     SameLine(0, style.FramePadding.x * 2.0f);
 }
 
+void ImGui::CheckMark() {
+    ImGuiWindow* window = GetCurrentWindow();
+    if (window->SkipItems)
+        return;
+
+    ImGuiContext& g = *GImGui;
+    const ImGuiStyle& style = g.Style;
+    const float line_height =
+        ImMax(ImMin(window->DC.CurrLineSize.y, g.FontSize + style.FramePadding.y * 2), g.FontSize);
+    const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(g.FontSize, line_height));
+    ItemSize(bb);
+    if (!ItemAdd(bb, 0)) {
+        SameLine(0, style.FramePadding.x * 2);
+        return;
+    }
+
+    // Render and stay on same line
+    ImU32 text_col = GetColorU32(ImGuiCol_Text);
+    RenderCheckMark(window->DrawList,
+        bb.Min + ImVec2(g.FontSize * 0.4f, g.FontSize * 0.1f),
+        text_col,
+        0.75f * line_height);
+    SameLine(0, style.FramePadding.x * 2.0f);
+}
+
 // This is provided as a convenience for being an often requested feature.
 // FIXME-STYLE: we delayed adding as there is a larger plan to revamp the styling system.
 // Because of this we currently don't provide many styling options for this widget
